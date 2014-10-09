@@ -1,0 +1,13 @@
+stdfiles: command not found
+
+
+
+
+-----------------------------------------
+Created with:
+$ stdfiles "the precious data" 2> newfile
+
+0> stdin
+1> stdout
+2> stderr
+-----------------------------------------
