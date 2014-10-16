@@ -34,11 +34,19 @@ int main (int argc, char *argv[]) {
 		return 1;
 	}
 	
-	while( myoffset < theiroffset ) {
-		fgets(buffer, 1024, fp);
+	while(1) {
+		fgets(buffer,1024,fp);
+		// the offset is specified is somewhere *in* this buffer
+		if ( myoffset + strlen(buffer) > theiroffset) {
+			if ( myoffset + strlen(buffer) - 1 == theiroffset) {
+				//its the newline
+				break;
+			}
+			fputs(buffer,stdout);	//newline included
+			break
+		}
 		myoffset += strlen(buffer);
 	}
-
 	fclose(fp);
 	
 	return 0;
