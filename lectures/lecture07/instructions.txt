@@ -1,0 +1,10 @@
+1. Write a main() app that reads in 1Mi of the floating point values into a dynamically allocated array
+
+
+Need:
+main()
+malloc
+float, sizeof(float)
+FILE* fp
+fscanf
+
