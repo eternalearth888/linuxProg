@@ -8,17 +8,17 @@
 #include <errno.h>
 /**************************************/
 //#define MYERR(fp,op) myerror(fp, __FUNCTION__,op)
-#define MYERR(fp,...) myerror(fp, __FUNCTION__, __VA_ARGS__ "")
+#define MYERR(fp,...) myerror(fp, __FUNCTION__, __LINE__, __VA_ARGS__ "")
 
 #define BUFFLEN 1024
 
-void myerror(FILE* fp, const char* functionname, const char* op) {
+void myerror(FILE* fp, const char* functionname, int lineno, const char* op) {
 	char errbuff[BUFFLEN];
 	char* es = strerror_r(errno, errbuff, BUFFLEN); 
 	if(strlen(op)) {
-		fprintf(fp, "%s (%s): %s\n", functionname, op, es);
+		fprintf(fp, "%s:%d: (%s): %s\n", functionname, lineno, op, es);
 	} else {
-		fprintf(fp, "%s: %s\n", functionname, es);
+		fprintf(fp, "%s:%d: %s\n", functionname, lineno, es);
 	}
 }
 
