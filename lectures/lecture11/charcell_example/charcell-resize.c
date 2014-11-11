@@ -9,6 +9,17 @@
  *  c. http://www.linuxfocus.org/English/March2002/article233.shtml#233lfindex2
  *  d. http://invisible-island.net/ncurses/ncurses-intro.html
  *
+ * This example demonstrates catching the SIGWINCH application signal to push
+ * KEY_RESIZE into the curses KEY queue.  This is seen in the wild in several
+ * different applications as a portable way to trigger redrawing.  Technically 
+ * could be flawed since only certain library and system calls are signal safe
+ * (see signal(7)).
+ *
+ * In practice, and recommended for the course, the curses library will trap
+ * the SIGWINCH signal in a more robust signal safe manner and push the
+ * KEY_RESIZE to the application input queue.  So what you see here is really
+ * just a motivating example for signals as opposed to the proper way to do
+ * things.
  */
 #include <string.h>
 #include <ncurses.h>
@@ -23,7 +34,8 @@
 
 #define DISPLAY_TITLE "| Display |"
 #define EDIT_TITLE "| Edit |"
-#define QUIT_TITLE "| Esc->Quit |"
+#define QUIT_TITLE "| F1->Quit |"
+
 
 void draw_borders(WINDOW * screen, char horiz, char vert, char corner)
 {
@@ -50,19 +62,12 @@ void draw_borders(WINDOW * screen, char horiz, char vert, char corner)
 	}
 }
 
-#define BUFLEN 1024
-int main(int argc, char *argv[])
+int size_display( WINDOW* display, WINDOW* edit )
 {
 	int parent_x, parent_y;
 	int edit_size = 3;
 
-	initscr();
-	noecho();
-	cbreak();
-	keypad(stdscr,TRUE);
-	curs_set(FALSE);
-
-	// always do this at startup, otherwise you have strange initial
+	// always do this at startup or resize, otherwise you have strange initial
 	// refresh semantics
 	wclear(stdscr);
 	refresh();
@@ -70,33 +75,60 @@ int main(int argc, char *argv[])
 	// set up initial windows
 	getmaxyx(stdscr, parent_y, parent_x);
 
-	WINDOW *display = newwin(parent_y - edit_size, parent_x, 0, 0);
+	wresize(display, parent_y - edit_size, parent_x);
+	mvwin(display, 0, 0);
+	wclear(display);
 	draw_borders(display, HORZ1, VERT1, CORNER);
 	mvwprintw(display, 0, 3, DISPLAY_TITLE);
 	mvwprintw(display, 0, parent_x-3-strlen(QUIT_TITLE), QUIT_TITLE);
-	wrefresh(display);
 
-	WINDOW *edit = newwin(edit_size, parent_x, parent_y - edit_size, 0);
+	wresize(edit, edit_size, parent_x);
+	mvwin(edit, parent_y-edit_size, 0);
+	wclear(edit);
 	draw_borders(edit, HORZ2, VERT2, CORNER);
 	mvwprintw(edit, 0, 3, EDIT_TITLE);
+
+	wrefresh(display);
 	wrefresh(edit);
 
+	return parent_y - 4 - edit_size;
+}
+
+#define BUFLEN 1024
+int main(int argc, char *argv[])
+{
+	initscr();
+	noecho();
+	cbreak();
+	keypad(stdscr,TRUE);
+	curs_set(FALSE);
+
+	// set up initial windows
+	WINDOW* display = newwin(1, 1, 0, 0 );
+	WINDOW* edit = newwin(1,1, 0, 0 );
+	int dispheight = size_display( display, edit );
 
 	int d = 0;
 	char buf[BUFLEN];
 	int ch;
-	while((ch = getch()) != (ch==ESCAPE)) {
+	while((ch = getch()) != KEY_F(1)) {
 		switch (ch) {
+			case KEY_RESIZE:
+				strncpy( buf, "KEY_RESIZE", BUFLEN );
+				mvwprintw( display, d++ + 2, 2, buf );
+				d = d % dispheight;
+				dispheight = size_display( display, edit );
+				break;
 			case KEY_LEFT:
 				strncpy( buf, "KEY_LEFT", BUFLEN );
 				mvwprintw( display, d++ + 2, 2, buf );
-				d = d % (parent_y - 4 - edit_size);
+				d = d % dispheight;
 				wrefresh(display);
 				break;
 			case KEY_F(2):
 				strncpy( buf, "KEY_F(2)", BUFLEN );
 				mvwprintw( display, d++ + 2, 2, buf );
-				d = d % (parent_y - 4 - edit_size);
+				d = d % dispheight;
 				wrefresh(display);
 				break;
 			default :
@@ -107,7 +139,7 @@ int main(int argc, char *argv[])
 				} else {
 					snprintf( buf, BUFLEN, "Unprintable %04x", ch );
 					mvwprintw( display, d++ + 2, 2, buf );
-					d = d % (parent_y - 4 - edit_size);
+					d = d % dispheight;
 					wrefresh(display);
 				}
 				break;
