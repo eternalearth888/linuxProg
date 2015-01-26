@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include "crr.h"
 
-struct room makeroom(char* name) {
+struct room makeroom(int id, char* name) {
 	struct room newroom;
+	newroom.id = id;
 	strncpy(newroom.name, name, ROOMBUF);
 	return newroom;
 }
@@ -32,12 +33,13 @@ int main(int argc, char* argv[]) {
 	// READ argv[1] text file (ex: rooms.dat)
 	int i = 0;
 	while (fscanf(ifp, "%s", &floorplan[i].name) != EOF) {
+		floorplan[i].id = i;
 		i++;
 	}
 
 	// Verify rooms
 	for (int j = 0; j < FLOORPLAN; j++) {
-		printf("%i:%s\n", j,floorplan[j].name);
+		printf("%i:%s\n", floorplan[j].id,floorplan[j].name);
 	}
 
 	fclose(ifp);

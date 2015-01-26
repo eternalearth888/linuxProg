@@ -4,6 +4,7 @@
 #define ROOMBUF 1024
 
 struct room {
+	int id;
 	char name[ROOMBUF];
 };
 
