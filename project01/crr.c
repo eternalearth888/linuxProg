@@ -3,30 +3,46 @@
 #include <stdlib.h>
 #include "crr.h"
 
-struct room makeroom(int id, char* name) {
+struct room makeroom(char* name) {
 	struct room newroom;
-	newroom.id = id;
 	strncpy(newroom.name, name, ROOMBUF);
 	return newroom;
 }
 
-
 int main(int argc, char* argv[]) {
-
+	// Struct Related
 	#define FLOORPLAN 10
+	struct room floorplan[FLOORPLAN];
 
-	struct room floorplan[] = {{1,"Kitchen"},{2,"Ballroom"},{3,"Conservatory"},{4,"Dining Room"},{5, "Cellar"},{6,"Billiard Room"},{7,"Library"},{8,"Lounge"},{9,"Hall"},{10,"Study"}};
+	// File Related
+	FILE *ifp;
+	ifp = fopen(argv[1], "r");
 
-	
-	printf("ID\tROOM\n");
-	printf("-----------------------\n");
-	for (int i = 0; i < (sizeof(floorplan)/sizeof(struct room)); i++) {
-		printf("%i\t", floorplan[i].id);
-		printf("%s\n", floorplan[i].name);
+	// First error check for the correct number of arguments
+	if (argc < 2) {
+		fputs("Not enough ARGS.\n", stderr);
+		return 1;
 	}
-	printf("-----------------------\n");
 
-//	free(floorplan);
+	if ( ifp == NULL) {
+		fprintf(stderr, "Can't open input file: '%s'\n", argv[1]);
+		exit(1);
+	} 
+
+	// READ argv[1] text file (ex: rooms.dat)
+	int i = 0;
+	while (fscanf(ifp, "%s", &floorplan[i].name) != EOF) {
+		i++;
+	}
+
+	// Verify rooms
+	for (int j = 0; j < FLOORPLAN; j++) {
+		printf("%i:%s\n", j,floorplan[j].name);
+	}
+
+	fclose(ifp);
+	//free(floorplan);
+
 	return 0;
 }
 
