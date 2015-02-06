@@ -1,16 +1,23 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "crr.h"
 
-struct room makeroom(int id, char* name) {
+struct room makeroom(int id, char* name, time_t start, time_t end, char* desc) {
 	struct room newroom;
 	newroom.id = id;
-	strncpy(newroom.name, name, ROOMBUF);
+	time_t start_T;
+	time_t end_t;
+	strncpy(newroom.name, name, ROOMNAME);
 	return newroom;
 }
 
+void printmenu();
+
 int main(int argc, char* argv[]) {
+	printmenu();
+
 	// Struct Related
 	struct room *floorplan;
 
@@ -55,16 +62,58 @@ int main(int argc, char* argv[]) {
 		i++;
 	}
 
+	// Print Num Rooms
 	printf("Num Rooms: %i\n",numRooms);
 
-	// Verify ID:ROOMNAME
+	// Verify ID:ROOMNAME, Print Struct
 	for (int j = 0; j < numRooms; j++) {
 		printf("%i:%s\n", floorplan[j].id,floorplan[j].name);
 	}
 
+	// Close files and free pointers
 	fclose(ifp);
 	free(floorplan);
 
 	return 0;
 }
 
+void printmenu() {
+	int choice = 1; // Default choice is 1
+
+	printf("Menu:\n");
+	printf("---------------------------------------------\n");
+	printf("1. View Available Rooms\n");
+	printf("2. View Reservations On Specific Date\n");
+	printf("3. View Specific Room\n");
+	printf("4. Search Event\n");
+	printf("5. Save Changes\n");
+	printf("0. To Quit\n");
+	printf("---------------------------------------------\n");
+	printf("Option: ");
+	scanf("%i", &choice);	
+
+	switch (choice) {
+		case 1:
+//			view_availableRooms();
+			break;
+		case 2:
+//			view_specificDate();
+			break;
+		case 3:
+//			view_specifcRoom();
+			break;
+		case 4:
+//			search_event();
+			break;
+		case 5:
+//			save_changes();
+			break;
+		case 0:
+			printf("Good-bye!\n");
+			exit(0);
+			break;
+		default:
+			printf("Not a valid menu option. Try Again.\n");
+			break;
+	}
+}

@@ -1,11 +1,14 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#define ROOMBUF 1024
+#define ROOMNAME 48
 
 struct room {
 	int id;
-	char name[ROOMBUF];
+	char name[ROOMNAME];
+	time_t start;
+	time_t end;
+	char desc[140];
 };
 
 #endif
