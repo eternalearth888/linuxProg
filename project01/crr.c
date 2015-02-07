@@ -7,16 +7,25 @@
 struct room makeroom(int id, char* name, time_t start, time_t end, char* desc) {
 	struct room newroom;
 	newroom.id = id;
-	time_t start_T;
+	time_t start_t;
 	time_t end_t;
+	char desc
 	strncpy(newroom.name, name, ROOMNAME);
 	return newroom;
 }
 
 void printmenu();
 
+int countRoom_fromFile();
+
+void view_availableRooms();
+
 int main(int argc, char* argv[]) {
-	printmenu();
+	// First error check for the correct number of arguments
+	if (argc < 2) {
+		fputs("Not enough ARGS.\n", stderr);
+		return 1;
+	}
 
 	// Struct Related
 	struct room *floorplan;
@@ -25,30 +34,14 @@ int main(int argc, char* argv[]) {
 	FILE *ifp;
 	ifp = fopen(argv[1], "r");
 
-	// First error check for the correct number of arguments
-	if (argc < 2) {
-		fputs("Not enough ARGS.\n", stderr);
-		return 1;
-	}
-
 	// File error check
 	if ( ifp == NULL) {
 		fprintf(stderr, "Can't open input file: '%s'\n", argv[1]);
 		exit(1);
 	}
 
-	// Count number of non-blank lines in rooms.dat
-	char line;
-	int numRooms = 0;
-
-	while((line = fgetc(ifp)) != EOF) {
-		if (line == '\n') {
-			numRooms++;
-		}
-	}
-
-	//Start at the beginning of the file now that we have reached the end
-	fseek(ifp, 0, SEEK_SET);
+	printmenu();
+	
 
 	// Now that we know how many rooms to get from the file
 	// Malloc the struct to adjust as necessary	
@@ -94,7 +87,7 @@ void printmenu() {
 
 	switch (choice) {
 		case 1:
-//			view_availableRooms();
+			view_availableRooms(FILE);
 			break;
 		case 2:
 //			view_specificDate();
@@ -116,4 +109,26 @@ void printmenu() {
 			printf("Not a valid menu option. Try Again.\n");
 			break;
 	}
+}
+
+int countRoom_fromFile(FILE *in) {
+
+	// Count number of non-blank lines in rooms.dat
+	char line;
+	int numRooms = 0;
+
+	while((line = fgetc(ifp)) != EOF) {
+		if (line == '\n') {
+			numRooms++;
+		}
+
+	}
+
+	//Start at the beginning of the file now that we have reached the end
+	fseek(ifp, 0, SEEK_SET);
+	return numRooms;
+}
+
+void view_availableRooms(FILE *in) {
+	countRoom_fromFile(in);
 }
