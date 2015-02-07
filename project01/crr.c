@@ -9,16 +9,16 @@ struct room makeroom(int id, char* name, time_t start, time_t end, char* desc) {
 	newroom.id = id;
 	time_t start_t;
 	time_t end_t;
-	char desc
 	strncpy(newroom.name, name, ROOMNAME);
+	strncpy(newroom.desc, desc, ROOMDESC);
 	return newroom;
 }
 
-void printmenu();
+void printmenu(FILE *in, struct room *record);
 
-int countRoom_fromFile();
+int countRoom_fromFile(FILE *in);
 
-void view_availableRooms();
+void view_availableRooms(FILE *in,  struct room *record);
 
 int main(int argc, char* argv[]) {
 	// First error check for the correct number of arguments
@@ -40,28 +40,7 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	printmenu();
-	
-
-	// Now that we know how many rooms to get from the file
-	// Malloc the struct to adjust as necessary	
-	floorplan = malloc(numRooms*sizeof(struct room));
-
-	// READ argv[1] text file (ex: rooms.dat)
-	// Input values for room names into struct and add ids with them
-	int i = 0;
-	while (fscanf(ifp, "%s", &floorplan[i].name) != EOF) {
-		floorplan[i].id = i;
-		i++;
-	}
-
-	// Print Num Rooms
-	printf("Num Rooms: %i\n",numRooms);
-
-	// Verify ID:ROOMNAME, Print Struct
-	for (int j = 0; j < numRooms; j++) {
-		printf("%i:%s\n", floorplan[j].id,floorplan[j].name);
-	}
+	printmenu(ifp, floorplan);
 
 	// Close files and free pointers
 	fclose(ifp);
@@ -70,7 +49,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void printmenu() {
+void printmenu(FILE* in, struct room *record) {
 	int choice = 1; // Default choice is 1
 
 	printf("Menu:\n");
@@ -87,7 +66,7 @@ void printmenu() {
 
 	switch (choice) {
 		case 1:
-			view_availableRooms(FILE);
+			view_availableRooms(in, record);
 			break;
 		case 2:
 //			view_specificDate();
@@ -117,7 +96,7 @@ int countRoom_fromFile(FILE *in) {
 	char line;
 	int numRooms = 0;
 
-	while((line = fgetc(ifp)) != EOF) {
+	while((line = fgetc(in)) != EOF) {
 		if (line == '\n') {
 			numRooms++;
 		}
@@ -125,10 +104,32 @@ int countRoom_fromFile(FILE *in) {
 	}
 
 	//Start at the beginning of the file now that we have reached the end
-	fseek(ifp, 0, SEEK_SET);
+	fseek(in, 0, SEEK_SET);
 	return numRooms;
 }
 
-void view_availableRooms(FILE *in) {
-	countRoom_fromFile(in);
+void view_availableRooms(FILE *in,  struct room *record) {
+	int numRooms = countRoom_fromFile(in);
+
+	// Now that we know how many rooms to get from the file
+	// Malloc the struct to adjust as necessary	
+	record = malloc(numRooms*sizeof(struct room));
+
+	// READ argv[1] text file (ex: rooms.dat)
+	// Input values for room names into struct and add ids with them
+	int i = 0;
+	while (fscanf(in, "%s", &record[i].name) != EOF) {
+		record[i].id = i;
+		i++;
+	}
+
+	// Print Num Rooms
+	printf("Num Rooms: %i\n",numRooms);
+
+	// Verify ID:ROOMNAME, Print Struct
+	for (int j = 0; j < numRooms; j++) {
+		printf("%i:%s\n", record[j].id,record[j].name);
+	}
+	exit(0);
+
 }
