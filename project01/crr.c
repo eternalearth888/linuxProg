@@ -14,11 +14,9 @@ struct room makeroom(int id, char* name, time_t start, time_t end, char* desc) {
 	return newroom;
 }
 
-void printmenu(FILE *in, struct room *record);
-
+void printMenu();
 int countRoom_fromFile(FILE *in);
-
-void view_availableRooms(FILE *in,  struct room *record);
+void view_availableRooms(FILE *in,  struct room *record, int numRooms);
 
 int main(int argc, char* argv[]) {
 	// First error check for the correct number of arguments
@@ -40,36 +38,19 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	printmenu(ifp, floorplan);
+	int nRoom = countRoom_fromFile(ifp);
 
-	// Close files and free pointers
-	fclose(ifp);
-	free(floorplan);
+	int choice;
 
-	return 0;
-}
-
-void printmenu(FILE* in, struct room *record) {
-	int choice = 1; // Default choice is 1
-
-	printf("Menu:\n");
-	printf("---------------------------------------------\n");
-	printf("1. View Available Rooms\n");
-	printf("2. View Reservations On Specific Date\n");
-	printf("3. View Specific Room\n");
-	printf("4. Search Event\n");
-	printf("5. Save Changes\n");
-	printf("0. To Quit\n");
-	printf("---------------------------------------------\n");
-	printf("Option: ");
+	printMenu();
 	scanf("%i", &choice);	
 
 	switch (choice) {
 		case 1:
-			view_availableRooms(in, record);
+			view_availableRooms(ifp, floorplan, nRoom);
 			break;
 		case 2:
-//			view_specificDate();
+//			view_specificDate(ifp, floorplan);
 			break;
 		case 3:
 //			view_specifcRoom();
@@ -88,6 +69,25 @@ void printmenu(FILE* in, struct room *record) {
 			printf("Not a valid menu option. Try Again.\n");
 			break;
 	}
+
+	// Close files and free pointers
+	fclose(ifp);
+	free(floorplan);
+
+	return 0;
+}
+
+void printMenu() {
+	printf("Menu:\n");
+	printf("---------------------------------------------\n");
+	printf("1. View Available Rooms\n");
+	printf("2. View Reservations On Specific Date\n");
+	printf("3. View Specific Room\n");
+	printf("4. Search Event\n");
+	printf("5. Save Changes\n");
+	printf("0. To Quit\n");
+	printf("---------------------------------------------\n");
+	printf("Option: ");
 }
 
 int countRoom_fromFile(FILE *in) {
@@ -108,9 +108,7 @@ int countRoom_fromFile(FILE *in) {
 	return numRooms;
 }
 
-void view_availableRooms(FILE *in,  struct room *record) {
-	int numRooms = countRoom_fromFile(in);
-
+void view_availableRooms(FILE *in,  struct room *record, int numRooms) {
 	// Now that we know how many rooms to get from the file
 	// Malloc the struct to adjust as necessary	
 	record = malloc(numRooms*sizeof(struct room));
