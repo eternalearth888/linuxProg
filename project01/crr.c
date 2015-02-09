@@ -19,7 +19,7 @@ time_t convertLocal(time_t time);
 
 // Incompleted
 void create_reservation(struct room *record, int roomChoice);
-void insert_reservation(struct reservation *record);
+void insert_reservation(struct reservation record);
 
 /**MAIN PROGRAM**/
 
@@ -30,6 +30,8 @@ int main(int argc, char* argv[]) {
 		fputs("Not enough ARGS.\n", stderr);
 		return 1;
 	}
+
+	db = malloc(sizeof(struct reservation_array*));
 
 	// File Related - rooms.dat
 	FILE *ifp;
@@ -91,7 +93,7 @@ int main(int argc, char* argv[]) {
 
 	// Close files and free pointers
 	fclose(ifp);
-	fclose(ofp);
+	//fclose(ofp);
 	free(create_room);
 
 	return 0;
@@ -179,8 +181,8 @@ void view_available(struct room *record, int num) {
 	printf("\nCHOOSE ROOM NUMBER: ");
 	scanf("%d", &roomChoice);
 	print_confMenu();
-	scanf("%d", &confirm);
-	
+	scanf("%i", &confirm);
+
 	if (confirm == 1) {
 		create_reservation(record, roomChoice);
 	} else if (confirm == 2) {
@@ -189,7 +191,7 @@ void view_available(struct room *record, int num) {
 }
 
 int valid_date(time_t start_t, time_t end_t) {
-	if (start_t > end_t) {
+	if (start_t > end_t) { 
 		fputs("Start time cannot be greater than end time.\n", stderr);
 		return 1;
 	}
@@ -214,13 +216,15 @@ time_t convertLocal(time_t time) {
 /**CURRENT FUNCTIONS**/
 
 void create_reservation(struct room* record, int roomChoice) {
-	struct reservation *create_res;
+	struct reservation create_res;
+
+
 
 	// Grab the id
-	create_res[roomChoice].id = record[roomChoice].id;
+	create_res.id = record[roomChoice].id;
 
 	// Grab the roomname
-	strncpy(create_res[roomChoice].name, record[roomChoice].name, ROOMNAME);
+	strncpy(create_res.name, record[roomChoice].name, ROOMNAME);
 
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
@@ -229,23 +233,22 @@ void create_reservation(struct room* record, int roomChoice) {
 	
 	char start[1024];
 	time_t start_t;
-
+	fgets(start, sizeof(DATEBUF), stdin);
 	puts("Start time reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
 	fgets(start, sizeof(DATEBUF), stdin);
+	fflush(stdout);
 	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	start_t = mktime(&dtm); 	
 	
-	printf("---------------------------------------------");
-	
 	// Adding end time
 	char end[1024];
 	time_t end_t;
-
 	puts("End time for reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
 	fgets(end, sizeof(DATEBUF), stdin);
+	fflush(stdout);
 	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	end_t = mktime(&dtm); 	
@@ -255,31 +258,34 @@ void create_reservation(struct room* record, int roomChoice) {
 		puts("Valid Date...");
 
 		// Store start and end date now that they have been validated
-		create_res[roomChoice].start = convertGMT(start_t);
-		create_res[roomChoice].end = convertGMT(end_t);
+		// Store them as localtime --> gmt
+		create_res.start = convertGMT(start_t);
+		create_res.end = convertGMT(end_t);
 	}
 
 	// Adding event description
 	char event_desc[ROOMDESC];
 	fputs("Event Description:\n", stdout);
 	fgets(event_desc, ROOMDESC, stdin);
-	strncpy(create_res[roomChoice].desc, event_desc, ROOMDESC);
+	fflush(stdout);
+	strncpy(create_res.desc, event_desc, ROOMDESC);
 
 	int confirm;
 	print_confMenu();
-	scanf("%d", &confirm);
+	scanf("%i", &confirm);
+
 	
 	if (confirm == 1) {
-	//	insert_reservation(create_res);
+		insert_reservation(create_res);
 	} else if (confirm == 2) {
 		exit(0);
 	}
 }
 
-void insert_reservation(struct reservation *record) {
+void insert_reservation(struct reservation record) {
 	if (db->maxlength_numElements > 0){
 
-		db->record[db->numElements] = *record;
+		db->record[db->numElements] = record;
 		db->numElements++;
 	} else {
 		// Only occurs on the first
@@ -287,11 +293,11 @@ void insert_reservation(struct reservation *record) {
 		db->maxlength_numElements=1024;
 
 		// NOTE
-		db->record[db->numElements].id = record->id;
-		strncpy(db->record[db->numElements].name, record->name, ROOMNAME);
-		db->record[db->numElements].start = record->start;
-		db->record[db->numElements].end = record->end;
-		strncpy(db->record[db->numElements].desc, record->desc, ROOMDESC);
+		db->record[db->numElements].id = record.id;
+		strncpy(db->record[db->numElements].name, record.name, ROOMNAME);
+		db->record[db->numElements].start = record.start;
+		db->record[db->numElements].end = record.end;
+		strncpy(db->record[db->numElements].desc, record.desc, ROOMDESC);
 
 		db->numElements++;
 	}
