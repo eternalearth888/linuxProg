@@ -198,6 +198,7 @@ int valid_date(time_t start_t, time_t end_t) {
 }
 
 //REQ11
+// Help from Krista Horn
 time_t convertGMT(time_t time) {
 	struct tm tm;
 	localtime_r(&time, &tm);
@@ -219,8 +220,6 @@ time_t convertLocal(time_t time) {
 void create_reservation(struct room* record, int roomChoice) {
 	struct reservation create_res;
 
-
-
 	// Grab the id
 	create_res.id = record[roomChoice].id;
 
@@ -237,9 +236,9 @@ void create_reservation(struct room* record, int roomChoice) {
 	fgets(start, sizeof(DATEBUF), stdin);
 	puts("Start time reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
-	fflush(stdout);
 	fgets(start, sizeof(DATEBUF), stdin);
-	strptime(DATEBUF, "%n%Y/%m/%d%n%H:%M%n", &stm);
+	fflush(stdout);
+	strptime(start, "%n%Y/%m/%d%n%H:%M%n", &stm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	start_t = mktime(&stm); 	
 	
@@ -249,10 +248,9 @@ void create_reservation(struct room* record, int roomChoice) {
 	time_t end_t;
 	puts("End time for reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
-	fflush(stdout);
 	fgets(end, sizeof(DATEBUF), stdin);
 	fflush(stdout);
-	strptime(DATEBUF, "%n%Y/%m/%d%n%H:%M", &etm);
+	strptime(end, "%n%Y/%m/%d%n%H:%M", &etm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	end_t = mktime(&etm); 	
 
