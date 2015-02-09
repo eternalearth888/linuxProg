@@ -4,25 +4,20 @@
 #include <time.h>
 #include "crr.h"
 
-struct room makeroom(int id, char* name, time_t start, time_t end, char* desc) {
-	struct room newroom;
-	newroom.id = id;
-	time_t start_t;
-	time_t end_t;
-	strncpy(newroom.name, name, ROOMNAME);
-	strncpy(newroom.desc, desc, ROOMDESC);
-	return newroom;
-}
+/**FUNCTION DECLARATIONS**/
 
-void printMenu();
-int countRoom_fromFile(FILE *in);
-void fill_struct(FILE *in, struct room *record);
-void view_availableRooms(FILE *in,  struct room *record, int numRooms);
+// Print Functions
+void print_menu();
+void print_confirmation(int choice);
 
-void save_res(FILE *in, struct room *record, int numRooms, int roomChoice);
+int countRoom(FILE *in);
+struct room *fill_struct(FILE *in, int num);
 
+void view_available(struct room *record, int num);
+//void save_res(struct room *record, int roomChoice);
 void valid_time(time_t start_t, time_t end_t);
-void valid_date(time_t start_d, time_t end_d);
+
+/**MAIN PROGRAM**/
 
 int main(int argc, char* argv[]) {
 	// First error check for the correct number of arguments
@@ -32,12 +27,9 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	// Struct Related
-	struct room *floorplan;
-
 	// File Related - rooms.dat
 	FILE *ifp;
-	ifp = fopen(argv[2], "r");
+	ifp = fopen(argv[1], "r");
 
 	// File Related - schedule.data
 	// Creating file
@@ -50,20 +42,26 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	int nRoom = countRoom_fromFile(ifp);
-	fill_struct(ifp, floorplan);
+	// Gathering room data
+	int numRoom = countRoom(ifp);
 
+	// Fill room struct with id and names
+	struct room *create_room = fill_struct(ifp, numRoom);
+
+	
+	print_menu();
 	int choice;
-
-	printMenu();
 	scanf("%i", &choice);	
+
+	printf("---------------------------------------------\n");
+	printf("---------------------------------------------\n");
 
 	switch (choice) {
 		case 1:
-			view_availableRooms(ifp, floorplan, nRoom);
+			view_available(create_room, numRoom);
 			break;
 		case 2:
-//			view_specificDate(ifp, floorplan);
+//			view_specificDate(ifp, create_room);
 			break;
 		case 3:
 //			view_specifcRoom();
@@ -86,145 +84,147 @@ int main(int argc, char* argv[]) {
 	// Close files and free pointers
 	fclose(ifp);
 	fclose(ofp);
-	free(floorplan);
+	free(create_room);
 
 	return 0;
 }
 
-void printMenu() {
+void print_menu() {
 	printf("Menu:\n");
 	printf("---------------------------------------------\n");
-	printf("1. View Available Rooms\n");
-	printf("2. View Reservations On Specific Date\n");
-	printf("3. View Specific Room\n");
-	printf("4. Search Event\n");
-	printf("5. Save Changes\n");
-	printf("0. To Quit\n");
+	printf("\t1. View Available Rooms\n");
+	printf("\t2. View Reservations On Specific Date\n");
+	printf("\t3. View Specific Room\n");
+	printf("\t4. Search Event\n");
+	printf("\t5. Save Changes\n");
+	printf("\t0. To Quit\n");
 	printf("---------------------------------------------\n");
 	printf("Option: ");
 }
 
-int countRoom_fromFile(FILE *in) {
-
+int countRoom(FILE *in) {
 	// Count number of non-blank lines in rooms.dat
 	char line;
-	int numRooms = 0;
+	int num = 0;
 
 	while((line = fgetc(in)) != EOF) {
 		if (line == '\n') {
-			numRooms++;
+			num++;
 		}
 
 	}
-
 	//Start at the beginning of the file now that we have reached the end
 	fseek(in, 0, SEEK_SET);
 
-	return numRooms;
+	return num;
 }
 
-void fill_struct(FILE *in, struct room *record) {
+struct room *fill_struct(FILE *in, int num) {
+	struct room *record_room;
+
 	// Now that we know how many rooms to get from the file
 	// Malloc the struct to adjust as necessary	
-	record = malloc(numRooms*sizeof(struct room));
+	record_room = malloc(num*sizeof(struct room));
 
 	// READ argv[1] text file (ex: rooms.dat)
 	// Input values for room names into struct and add ids with them
 	int i = 0;
-	while (fscanf(in, "%s", &record[i].name) != EOF) {
-		record[i].id = i;
+	while (fscanf(in, "%s", &record_room[i].name) != EOF) {
+		record_room[i].id = i;
+		//sprintf(record[i].name,"TEST");
 		i++;
 	}
+
+	return record_room;
 }
 
-void view_availableRooms(FILE *in,  struct room *record, int numRooms) {
-	// Print Num Rooms
-	//printf("Num Rooms: %i\n",numRooms);
-	printf("Available Rooms:\n");
-
-	// Verify ID:ROOMNAME, Print Struct
-	for (int j = 0; j < numRooms; j++) {
-		printf("%i:%s\n", record[j].id,record[j].name);
+void print_rooms(struct room *record, int num) {
+	for (int j = 0; j < num; j++) {
+		printf("\t%i:%s\n", record[j].id, record[j].name);
 	}
-	
+}
+
+void view_available(struct room *record, int num) {
+	// Print Num Rooms
+	//printf("Num Rooms: %i\n",num);
+
+	printf("Available Rooms:\n");
+	print_rooms(record, num);
+
 	//User room choice for reservation 
 	int roomChoice;
+	int confirm;
 	
-	printf("Choose room based on number:\n");
-	scanf("%d", &chosen);
+	printf("\nCHOOSE ROOM NUMBER: ");
+	scanf("%d", &roomChoice);
+	printf("---------------------------------------------\n");
+	printf("Are you sure?\n");
+	printf("\n\t1. CONFIRM \t2. CANCEL\n");
+	scanf("%d", &confirm);
+	printf("Option: ");
 
-	save_res(numRooms,in,record,roomChoice);
-
+	if (confirm == 0) {
+		exit(1);
+	} else {
+//		save_res(roomChoice);
+	}
 }
-
-void save_res(FILE *in, struct room *record, int numRooms, int roomChoice) {
-	struct room reservations;
+/**
+void save_res(int roomChoice) {
+	// Grab the id
+	reservation[roomChoice].id = record[roomChoice].id;
 
 	// Grab the roomname
-	strncpy(reservation[roomChoice].name, &record[roomChoice].name, ROOMNAME);
+	strncpy(reservation[roomChoice].name, record[roomChoice].name, ROOMNAME);
 
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
 	struct tm dtm={0};
-	char DATEBUF[]="2014/01/01";
+	char DATEBUF[]="2014/01/01 00:00";
+	
+	char start[1024];
+	time_t start_t;
 
-	struct tm ttm={0};
-	char TIMEBUF[]="00:00";
+	puts("Start time reservation:");
+	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
+	fgets(start, sizeof(DATEBUF), stdin);
+	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
+	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
+	start_t = mktime(&dtm); 	
 
-	time_t start_date;
-	time_t start_time;
-	time_t start;
-
-	fputs("Start time reservation:\n");
-
-	fputs("\tEnter Date 'YYYY/MM/DD' : ",stdout);
-	fgets(start_date,sizeof(DATEBUF), stdin);
-	strptime(DATEBUF, "%n%Y/%m/%d", &dtm);
-	mktime(&dtm); 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
-
-
-	fputs("\tEnter Time 'HH:MM' : ", stdout);
-	fgets(start_time, sizeof(TIMEBUF), stdin);
-	strptime(TIMEBUF, "%n/%H:%M", &ttm);
-	mktime(&ttm);
-
+	
+	printf("---------------------------------------------");
+	
 	// Adding end time
-	time_t end;
-	fputs("Enter end time for reservation:\n");
-	fputs("\tYYYY/MM/DD HH:MM\n",stdout);
+	char end[1024];
+	time_t end_t;
 
+	puts("End time for reservation:");
+	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
+	fgets(end, sizeof(DATEBUF), stdin);
+	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
+	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
+	end_t = mktime(&dtm); 	
+
+	// Error checking dates and times
+	if (valid_date(start,end)) {
+		puts("Valid Date...");
+
+		// Store start and end date
+		reservation[roomChoice].start_t = start;
+		reservation[roomChoice].end_t = end;
+	}
 
 	// Adding event description
 	char event_desc[ROOMDESC];
 	fputs("Event Description:\n", stdout);
 	fgets(event_desc, ROOMDESC, stdin);
 	strncpy(reservation[roomChoice].desc, event_desc, ROOMDESC);
-}
+}**/
 
 void valid_time(time_t start_t, time_t end_t) {
 	if (start_t > end_t) {
 		fputs("Start time cannot be greater than end time.\n", stderr);
 		exit(0);
 	}
-}
-
-void valid_date(time_t start_d, time_t end_d){
-	// First grab current date
-	// Example from : http://en.wikibooks.org/wiki/C_Programming/C_Reference/time.h/time_t
-	time_t now = time(NULL);
-	struct tm *ts;
-	char buf[80];
-
-	// Format the correct date YYYY/MM/DD
-	ts = localtime(&now);
-	strftime(buf, sizeof(buf), %n%Y/%m/%d, ts);	
-
-	if (buf < start_d) {
-		fputs("Start date canonot be before current date.\n", stderr);
-	} else {
-		if (start_d > end_d) {
-			fputs("Start date cannot be after end date.\n", stderr);
-		}
-	}
-
 }
