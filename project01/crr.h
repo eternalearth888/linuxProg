@@ -17,9 +17,11 @@ struct reservation {
 	char desc[ROOMDESC];
 };
 
+// 1 record of multiple reservations
 struct reservation_array {
-	int char_length;
-//	reservation *at;
+	int numElements;
+	int maxlength_numElements;
+	struct reservation *record;
 };
 
 #endif

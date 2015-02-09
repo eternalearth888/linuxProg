@@ -5,17 +5,21 @@
 #include "crr.h"
 
 /**FUNCTION DECLARATIONS**/
+struct reservation_array *db;
 
-// Print Functions
-void print_menu();
-void print_confirmation(int choice);
-
+// Completed functions in order of completion
+void print_mainMenu();
+void print_confMenu();
 int countRoom(FILE *in);
 struct room *fill_struct(FILE *in, int num);
-
 void view_available(struct room *record, int num);
-//void save_res(struct room *record, int roomChoice);
-void valid_time(time_t start_t, time_t end_t);
+int valid_date(time_t start_t, time_t end_t);
+time_t convertGMT(time_t time);
+time_t convertLocal(time_t time);
+
+// Incompleted
+void create_reservation(struct room *record, int roomChoice);
+void insert_reservation(struct reservation *record);
 
 /**MAIN PROGRAM**/
 
@@ -45,11 +49,15 @@ int main(int argc, char* argv[]) {
 	// Gathering room data
 	int numRoom = countRoom(ifp);
 
+	// Initializing max length for reservation_array
+	db->numElements = 0;
+	db->maxlength_numElements = 0;
+
 	// Fill room struct with id and names
 	struct room *create_room = fill_struct(ifp, numRoom);
 
 	
-	print_menu();
+	print_mainMenu();
 	int choice;
 	scanf("%i", &choice);	
 
@@ -89,15 +97,24 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void print_menu() {
+/**COMPLETED FUNCTIONS**/
+void print_mainMenu() {
 	printf("Menu:\n");
 	printf("---------------------------------------------\n");
 	printf("\t1. View Available Rooms\n");
 	printf("\t2. View Reservations On Specific Date\n");
 	printf("\t3. View Specific Room\n");
 	printf("\t4. Search Event\n");
-	printf("\t5. Save Changes\n");
+	printf("\t5. Save Changes to File\n");
 	printf("\t0. To Quit\n");
+	printf("---------------------------------------------\n");
+	printf("Option: ");
+}
+
+void print_confMenu() {
+	printf("---------------------------------------------\n");
+	printf("Are you sure?\n");
+	printf("\n\t1. CONFIRM \t2. CANCEL\n");
 	printf("---------------------------------------------\n");
 	printf("Option: ");
 }
@@ -135,10 +152,14 @@ struct room *fill_struct(FILE *in, int num) {
 		i++;
 	}
 
+	//Start at the beginning of the file now that we have reached the end
+	fseek(in, 0, SEEK_SET);
+
+
 	return record_room;
 }
 
-void print_rooms(struct room *record, int num) {
+void print_roomStruct(struct room *record, int num) {
 	for (int j = 0; j < num; j++) {
 		printf("\t%i:%s\n", record[j].id, record[j].name);
 	}
@@ -149,7 +170,7 @@ void view_available(struct room *record, int num) {
 	//printf("Num Rooms: %i\n",num);
 
 	printf("Available Rooms:\n");
-	print_rooms(record, num);
+	print_roomStruct(record, num);
 
 	//User room choice for reservation 
 	int roomChoice;
@@ -157,25 +178,49 @@ void view_available(struct room *record, int num) {
 	
 	printf("\nCHOOSE ROOM NUMBER: ");
 	scanf("%d", &roomChoice);
-	printf("---------------------------------------------\n");
-	printf("Are you sure?\n");
-	printf("\n\t1. CONFIRM \t2. CANCEL\n");
+	print_confMenu();
 	scanf("%d", &confirm);
-	printf("Option: ");
-
-	if (confirm == 0) {
-		exit(1);
-	} else {
-//		save_res(roomChoice);
+	
+	if (confirm == 1) {
+		create_reservation(record, roomChoice);
+	} else if (confirm == 2) {
+		exit(0);
 	}
 }
-/**
-void save_res(int roomChoice) {
+
+int valid_date(time_t start_t, time_t end_t) {
+	if (start_t > end_t) {
+		fputs("Start time cannot be greater than end time.\n", stderr);
+		return 1;
+	}
+	return 0;
+}
+
+//REQ11
+time_t convertGMT(time_t time) {
+	struct tm *zone;
+	time = timegm(zone);
+
+	return time;
+}
+
+time_t convertLocal(time_t time) {
+	struct tm *zone;
+	time = timelocal(zone);
+
+	return time;
+}
+
+/**CURRENT FUNCTIONS**/
+
+void create_reservation(struct room* record, int roomChoice) {
+	struct reservation *create_res;
+
 	// Grab the id
-	reservation[roomChoice].id = record[roomChoice].id;
+	create_res[roomChoice].id = record[roomChoice].id;
 
 	// Grab the roomname
-	strncpy(reservation[roomChoice].name, record[roomChoice].name, ROOMNAME);
+	strncpy(create_res[roomChoice].name, record[roomChoice].name, ROOMNAME);
 
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
@@ -191,7 +236,6 @@ void save_res(int roomChoice) {
 	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	start_t = mktime(&dtm); 	
-
 	
 	printf("---------------------------------------------");
 	
@@ -207,24 +251,48 @@ void save_res(int roomChoice) {
 	end_t = mktime(&dtm); 	
 
 	// Error checking dates and times
-	if (valid_date(start,end)) {
+	if (valid_date(start_t,end_t) == 0) {
 		puts("Valid Date...");
 
-		// Store start and end date
-		reservation[roomChoice].start_t = start;
-		reservation[roomChoice].end_t = end;
+		// Store start and end date now that they have been validated
+		create_res[roomChoice].start = convertGMT(start_t);
+		create_res[roomChoice].end = convertGMT(end_t);
 	}
 
 	// Adding event description
 	char event_desc[ROOMDESC];
 	fputs("Event Description:\n", stdout);
 	fgets(event_desc, ROOMDESC, stdin);
-	strncpy(reservation[roomChoice].desc, event_desc, ROOMDESC);
-}**/
+	strncpy(create_res[roomChoice].desc, event_desc, ROOMDESC);
 
-void valid_time(time_t start_t, time_t end_t) {
-	if (start_t > end_t) {
-		fputs("Start time cannot be greater than end time.\n", stderr);
+	int confirm;
+	print_confMenu();
+	scanf("%d", &confirm);
+	
+	if (confirm == 1) {
+	//	insert_reservation(create_res);
+	} else if (confirm == 2) {
 		exit(0);
+	}
+}
+
+void insert_reservation(struct reservation *record) {
+	if (db->maxlength_numElements > 0){
+
+		db->record[db->numElements] = *record;
+		db->numElements++;
+	} else {
+		// Only occurs on the first
+		db->record = malloc(1024*sizeof(struct reservation));
+		db->maxlength_numElements=1024;
+
+		// NOTE
+		db->record[db->numElements].id = record->id;
+		strncpy(db->record[db->numElements].name, record->name, ROOMNAME);
+		db->record[db->numElements].start = record->start;
+		db->record[db->numElements].end = record->end;
+		strncpy(db->record[db->numElements].desc, record->desc, ROOMDESC);
+
+		db->numElements++;
 	}
 }
