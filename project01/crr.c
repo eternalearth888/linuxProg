@@ -115,9 +115,8 @@ void print_mainMenu() {
 
 void print_confMenu() {
 	printf("---------------------------------------------\n");
-	printf("Are you sure?\n");
+	printf("ARE YOU SURE\n");
 	printf("\n\t1. CONFIRM \t2. CANCEL\n");
-	printf("---------------------------------------------\n");
 	printf("Option: ");
 }
 
@@ -200,15 +199,17 @@ int valid_date(time_t start_t, time_t end_t) {
 
 //REQ11
 time_t convertGMT(time_t time) {
-	struct tm *zone;
-	time = timegm(zone);
+	struct tm tm;
+	localtime_r(&time, &tm);
+	time = time - tm.tm_gmtoff;
 
 	return time;
 }
 
 time_t convertLocal(time_t time) {
-	struct tm *zone;
-	time = timelocal(zone);
+	struct tm tm;
+	localtime_r(&time, &tm);
+	time = time + tm.tm_gmtoff;
 
 	return time;
 }
@@ -228,34 +229,36 @@ void create_reservation(struct room* record, int roomChoice) {
 
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
-	struct tm dtm={0};
-	char DATEBUF[]="2014/01/01 00:00";
-	
+	char DATEBUF[] = "2014/01/01 00:00\n";
+
+	struct tm stm = {0};
 	char start[1024];
 	time_t start_t;
 	fgets(start, sizeof(DATEBUF), stdin);
 	puts("Start time reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
-	fgets(start, sizeof(DATEBUF), stdin);
 	fflush(stdout);
-	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
+	fgets(start, sizeof(DATEBUF), stdin);
+	strptime(DATEBUF, "%n%Y/%m/%d%n%H:%M%n", &stm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
-	start_t = mktime(&dtm); 	
+	start_t = mktime(&stm); 	
 	
 	// Adding end time
+	struct tm etm = {0};
 	char end[1024];
 	time_t end_t;
 	puts("End time for reservation:");
 	fputs("\tEnter Date 'YYYY/MM/DD HH:MM' : ",stdout);
+	fflush(stdout);
 	fgets(end, sizeof(DATEBUF), stdin);
 	fflush(stdout);
-	strptime(DATEBUF, "%Y/%m/%d %H:%M", &dtm);
+	strptime(DATEBUF, "%n%Y/%m/%d%n%H:%M", &etm);
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
-	end_t = mktime(&dtm); 	
+	end_t = mktime(&etm); 	
 
 	// Error checking dates and times
 	if (valid_date(start_t,end_t) == 0) {
-		puts("Valid Date...");
+		puts("\nValid Date...\n");
 
 		// Store start and end date now that they have been validated
 		// Store them as localtime --> gmt
