@@ -58,37 +58,33 @@ int main(int argc, char* argv[]) {
 	// Fill room struct with id and names
 	struct room *create_room = fill_struct(ifp, numRoom);
 
-	
-	print_mainMenu();
 	int choice;
-	scanf("%i", &choice);	
+	print_mainMenu();
+	scanf("%i", &choice);
+	while(choice != 0){	
 
-	printf("---------------------------------------------\n");
-	printf("---------------------------------------------\n");
-
-	switch (choice) {
-		case 1:
-			view_available(create_room, numRoom);
-			break;
-		case 2:
-//			view_specificDate(ifp, create_room);
-			break;
-		case 3:
-//			view_specifcRoom();
-			break;
-		case 4:
-//			search_event();
-			break;
-		case 5:
-//			save_changes();
-			break;
-		case 0:
-			printf("Good-bye!\n");
-			exit(0);
-			break;
-		default:
-			printf("Not a valid menu option. Try Again.\n");
-			break;
+		switch (choice) {
+			case 1:
+				view_available(create_room, numRoom);
+				break;
+			case 2:
+	//			view_specificDate(ifp, create_room);
+				break;
+			case 3:
+	//			view_specifcRoom();
+				break;
+			case 4:
+	//			search_event();
+				break;
+			case 5:
+	//			save_changes();
+				break;
+			default:
+				printf("Not a valid menu option. Try Again.\n");
+				break;
+		}
+		print_mainMenu();
+		scanf("%i", &choice);
 	}
 
 	// Close files and free pointers
@@ -128,6 +124,7 @@ int countRoom(FILE *in) {
 	while((line = fgetc(in)) != EOF) {
 		if (line == '\n') {
 			num++;
+
 		}
 
 	}
