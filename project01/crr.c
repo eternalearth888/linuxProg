@@ -6,7 +6,6 @@
 
 /**GLOBAL VARIABLES**/
 struct reservation_array *db;
-int resCount;
 
 /**FUNCTION DECLARATIONS**/
 
@@ -15,11 +14,11 @@ void print_mainMenu();
 void print_confMenu();
 int countRoom(FILE *in);
 struct room *fill_struct(FILE *in, int num);
-void view_rooms(struct room *record, int num);
+void view_rooms(struct room *record, int num, FILE *out);
 int valid_date(time_t start_t, time_t end_t);
 time_t convertGMT(time_t time);
 time_t convertLocal(time_t time);
-void create_reservation(struct room *record, int roomChoice);
+void create_reservation(struct room *record, int roomChoice, FILE *out);
 void insert_reservation(struct reservation record);
 void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]);
 void view_reservations(FILE *out);
@@ -60,13 +59,6 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	//Grab reservation count if output file exists, else resCount = 0
-	if (ofp == NULL) {
-		resCount = 0;
-	} else {
-
-	}
-
 	// Gathering room data
 	int numRoom = countRoom(ifp);
 
@@ -86,7 +78,7 @@ int main(int argc, char* argv[]) {
 	//	review what rooms are available but not their schedule
 	//		able to create a reservation however
 			case 1:
-				view_rooms(create_room, numRoom);
+				view_rooms(create_room, numRoom, ofp);
 				break;
 			case 2:
 	// review all current reservations
@@ -203,11 +195,11 @@ void print_roomStruct(struct room *record, int num) {
 	printf("\tROOM NUMBER\tROOM NAME\n");
 	printf("------------------------------------\n");
 	for (int j = 0; j < num; j++) {
-		printf("\t%i\t\t%s\n", record[j].id, record[j].name);
+		printf("\t%i\t%s\n", record[j].id, record[j].name);
 	}
 }
 
-void view_rooms(struct room *record, int num) {
+void view_rooms(struct room *record, int num, FILE* out) {
 	// Print Num Rooms
 	//printf("Num Rooms: %i\n",num);
 	printf("------------------------------------\n");
@@ -231,7 +223,7 @@ void view_rooms(struct room *record, int num) {
 		scanf("%i", &confirm);
 
 		if (confirm == 1) {
-			create_reservation(record, roomChoice);
+			create_reservation(record, roomChoice, out);
 		} else if (confirm == 2) {
 			exit(0);
 		}
@@ -268,7 +260,7 @@ time_t convertLocal(time_t time) {
 }
 /*************************************/
 
-void create_reservation(struct room* record, int roomChoice) {
+void create_reservation(struct room* record, int roomChoice, FILE *out) {
 	struct reservation create_res;
 	
 	// Adding start time
@@ -299,13 +291,52 @@ void create_reservation(struct room* record, int roomChoice) {
 	// if the strings before and after mktime do not match, then we know the input string was not a valid date;
 	end_t = mktime(&etm); 	
 
+	/*****REQ7******/
 	// Error checking dates and times
 	if (valid_date(start_t,end_t) == 0) {
 		puts("\nDATE VALID...\n");
 
-		// Grab the id
-		create_res.id = record[roomChoice].id;
+		// Create id for reservation NOT room
+		if (out == NULL) {
+			create_res.id = 0;
+		} else {
+			// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
+			struct reservation_array *buffer;
+			int count;
+			unsigned long length_file;
+			// Get file length
+			fseek(out, 0, SEEK_END);
+			length_file=ftell(out);
 
+			if ( (length_file%sizeof(struct reservation)) == 0) {
+				count = length_file/sizeof(struct reservation);
+			}
+
+			fseek(out, 0, SEEK_SET);
+
+			// Allocate memory
+			buffer = (struct reservation_array*)malloc(length_file);
+			
+			if (!buffer) {
+				fprintf(stderr, "ERROR: Could not allocate memory to buffer");
+		        fclose(out);
+				exit(1);
+			}
+
+			buffer->record = (struct reservation*)malloc(length_file);
+			if (!buffer) {
+				fprintf(stderr, "ERROR: Could not allocate memory to buffer->record");
+		        fclose(out);
+				exit(1);
+			}
+
+			//Read file contents into buffer
+			fread(buffer->record, sizeof(struct reservation), count, out);
+
+			free(buffer->record);
+			free(buffer);
+			create_res.id = count++;
+		}
 		// Grab the roomname
 		strncpy(create_res.name, record[roomChoice].name, ROOMNAME);
 
@@ -405,7 +436,7 @@ void view_reservations(FILE* out){
 	//Read file contents into buffer
 	fread(buffer->record, sizeof(struct reservation), count, out);
 	printf("\nCurrent Reservations:\n");
-	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
 	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		printf("\t%i", buffer->record[i].id);
@@ -459,7 +490,7 @@ void search_desc(FILE* out) {
 	printf("SEARCH ALL DESCRIPTIONS:");
 	scanf("%s", event_desc);
 
-	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
 	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		if (strcasestr(buffer->record[i].desc, event_desc)) {
@@ -477,7 +508,7 @@ void search_desc(FILE* out) {
 }
 
 void search_reseverationsOneRoom(FILE *out) {
-		// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
+	// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
 	struct reservation_array *buffer;
 	int count;
 	unsigned long length_file;
@@ -515,7 +546,7 @@ void search_reseverationsOneRoom(FILE *out) {
 	printf("SEARCH ROOM:");
 	scanf("%s", name_search);
 
-	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
 	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		if (strcasestr(buffer->record[i].name, name_search)) {
@@ -550,7 +581,52 @@ void delete_reservation(FILE *out) {
 		scanf("%i", &confirm);
 
 		if (confirm == 1) {
-			printf("\n");
+			int id_choice;
+			printf("CHOOSE ID TO DELETE:\n");
+			// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
+			struct reservation_array *buffer;
+			int count;
+			unsigned long length_file;
+			// Get file length
+			fseek(out, 0, SEEK_END);
+			length_file=ftell(out);
+
+			if ( (length_file%sizeof(struct reservation)) == 0) {
+				count = length_file/sizeof(struct reservation);
+			}
+
+			fseek(out, 0, SEEK_SET);
+
+			// Allocate memory
+			buffer = (struct reservation_array*)malloc(length_file);
+			
+			if (!buffer) {
+				fprintf(stderr, "ERROR: Could not allocate memory to buffer");
+		        fclose(out);
+				exit(1);
+			}
+
+			buffer->record = (struct reservation*)malloc(length_file);
+			if (!buffer) {
+				fprintf(stderr, "ERROR: Could not allocate memory to buffer->record");
+		        fclose(out);
+				exit(1);
+			}
+
+			//Read file contents into buffer
+			fread(buffer->record, sizeof(struct reservation), count, out);
+
+			// User search input
+			scanf("%i", id_choice);
+
+			printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+			printf("------------------------------------\n");
+			for (int i = 0; i < count; i++) {
+				if (buffer->record[i].id == id_choice) {
+					
+				}
+			}
+
 		} else if (confirm == 2) {
 			exit(0);
 		}
