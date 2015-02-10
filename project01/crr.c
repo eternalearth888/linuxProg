@@ -18,11 +18,11 @@ time_t convertGMT(time_t time);
 time_t convertLocal(time_t time);
 void create_reservation(struct room *record, int roomChoice);
 void insert_reservation(struct reservation record);
-
-// IN PROGRESS
 void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]);
 void view_reservations(FILE *out);
-//void search_event(struct reservation_array *record);
+void search_desc(FILE *out);
+
+// IN PROGRESS
 
 /**MAIN PROGRAM**/
 
@@ -73,28 +73,29 @@ int main(int argc, char* argv[]) {
 				view_rooms(create_room, numRoom);
 				break;
 			case 2:
-	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
-	//			view_reservationsDate();
-				break;
-			case 3:
-	//	review the schedule for one room over all days (future looking, not historical), allowing them to delete or change a pre-existing reservation
-	//			view_reseverationsOneRoom();
-				break;
-			case 4:
-	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
-	//			search_event(db);
-				break;
-			case 5:
 	// review all current reservations
 				view_reservations(ofp);
+				break;
+			case 3:
+	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
+	//			search_reservationsDate();
+				break;
+			case 4:
+	//	review the schedule for one room over all days (future looking, not historical), allowing them to delete or change a pre-existing reservation
+	//			search_reseverationsOneRoom();
+				break;
+			case 5:
+	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
+				search_desc(ofp);
 				break;
 			case 6:
 				save_changes(ofp, db, argc, argv);
 				break;
 			default:
-				printf("---------------------------------------------\n");
+				printf("--------------------------------------------------------------------------------\n");
 				printf("ERROR : Not a valid menu option. Try Again.\n");
-				printf("---------------------------------------------\n");
+				printf("--------------------------------------------------------------------------------\n");
+	
 				break;
 		}
 		print_mainMenu();
@@ -111,23 +112,22 @@ int main(int argc, char* argv[]) {
 
 /**COMPLETED FUNCTIONS**/
 void print_mainMenu() {
-	printf("Menu:\n");
-	printf("---------------------------------------------\n");
+	printf("Main Menu:\n");
+	printf("--------------------------------------------------------------------------------\n");
 	printf("\t1. View Available Rooms\n");
-	printf("\t2. View Reservations On Specific Date\n");
-	printf("\t3. View Specific Room\n");
-	printf("\t4. Search Event\n");
-	printf("\t5. View All Current Reservations\n");
+	printf("\t2. View All Current Reservations\n");
+	printf("\t3. Search Reservations: Date\n");
+	printf("\t4. Search Reservations: Room\n");
+	printf("\t5. Search Reservations: Description\n");
 	printf("\t6. Save Changes to File\n");
 	printf("\t0. Quit (Changes are not saved!)\n");
-	printf("---------------------------------------------\n");
+	printf("--------------------------------------------------------------------------------\n");
 	printf("Option: ");
 }
 
 void print_confMenu() {
-	printf("---------------------------------------------\n");
-	printf("ARE YOU SURE\n");
-	printf("\n\t1. CONFIRM \t2. CANCEL\n");
+	printf("--------------------------------------------------------------------------------\n");
+	printf("ARE YOU SURE\t1. CONFIRM \t2. CANCEL\n");
 	printf("Option: ");
 }
 
@@ -181,29 +181,38 @@ void print_roomStruct(struct room *record, int num) {
 void view_rooms(struct room *record, int num) {
 	// Print Num Rooms
 	//printf("Num Rooms: %i\n",num);
-
+	printf("--------------------------------------------------------------------------------\n");
 	printf("Available Rooms:\n");
 	print_roomStruct(record, num);
 
 	//User room choice for reservation 
 	int roomChoice;
 	int confirm;
-	
-	printf("\nCHOOSE ROOM NUMBER: ");
-	scanf("%d", &roomChoice);
+
+	printf("MAKE A RESERVATION:\n");
 	print_confMenu();
 	scanf("%i", &confirm);
 
 	if (confirm == 1) {
-		create_reservation(record, roomChoice);
-	} else if (confirm == 2) {
+		printf("\nCHOOSE ROOM NUMBER: ");
+		scanf("%d", &roomChoice);
+		print_confMenu();
+		scanf("%i", &confirm);
+
+		if (confirm == 1) {
+			create_reservation(record, roomChoice);
+		} else if (confirm == 2) {
+			exit(0);
+		}
+	} else {
 		exit(0);
 	}
+	
 }
 
 int valid_date(time_t start_t, time_t end_t) {
 	if (start_t > end_t) { 
-		fputs("Start time cannot be greater than end time.\n", stderr);
+		fputs("Start time cannot be greater thanO end time.\n", stderr);
 		return 1;
 	}
 	return 0;
@@ -315,8 +324,6 @@ void insert_reservation(struct reservation record) {
 	}
 }
 
-
-// Functions in progress
 //REQ 10
 void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]) {
 	int confirm;
@@ -348,10 +355,16 @@ void view_reservations(FILE* out){
 
 	// Allocate memory
 	buffer = (struct reservation_array*)malloc(length_file);
-	buffer->record = (struct reservation*)malloc(length_file);
-
+	
 	if (!buffer) {
 		fprintf(stderr, "ERROR: Could not allocate memory to buffer");
+        fclose(out);
+		exit(1);
+	}
+
+	buffer->record = (struct reservation*)malloc(length_file);
+	if (!buffer) {
+		fprintf(stderr, "ERROR: Could not allocate memory to buffer->record");
         fclose(out);
 		exit(1);
 	}
@@ -360,7 +373,7 @@ void view_reservations(FILE* out){
 	fread(buffer->record, sizeof(struct reservation), count, out);
 	printf("\nCurrent Reservations:\n");
 	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
-	printf("--------------------------------------------------\n");
+	printf("--------------------------------------------------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		printf("\t%i", buffer->record[i].id);
 		printf("\t%s", buffer->record[i].name);
@@ -368,13 +381,64 @@ void view_reservations(FILE* out){
 		printf("\t%lu", convertLocal(buffer->record[i].end));
 		printf("\t%s", buffer->record[i].desc);
 	}
+	printf("--------------------------------------------------------------------------------\n");
 	
-	fclose(out);
-//	free(buffer);
+	free(buffer->record);
+	free(buffer);
 }
 
-/**
-void search_event(struct reservation_array *record) {
-	qsort(record, record->numElements, sizeof(struct reserve), string_cmpdesc)
+void search_desc(FILE* out) {
+	// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
+	struct reservation_array *buffer;
+	int count;
+	unsigned long length_file;
+	// Get file length
+	fseek(out, 0, SEEK_END);
+	length_file=ftell(out);
+
+	if ( (length_file%sizeof(struct reservation)) == 0) {
+		count = length_file/sizeof(struct reservation);
+	}
+
+	fseek(out, 0, SEEK_SET);
+
+	// Allocate memory
+	buffer = (struct reservation_array*)malloc(length_file);
+	
+	if (!buffer) {
+		fprintf(stderr, "ERROR: Could not allocate memory to buffer");
+        fclose(out);
+		exit(1);
+	}
+
+	buffer->record = (struct reservation*)malloc(length_file);
+	if (!buffer) {
+		fprintf(stderr, "ERROR: Could not allocate memory to buffer->record");
+        fclose(out);
+		exit(1);
+	}
+
+	//Read file contents into buffer
+	fread(buffer->record, sizeof(struct reservation), count, out);
+
+	// User search input
+	char event_desc[ROOMDESC];
+	printf("ENTER YOUR SEARCH:\n");
+	scanf("%s", event_desc);
+
+	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("--------------------------------------------------------------------------------\n");
+	for (int i = 0; i < count; i++) {
+		if (strcasestr(buffer->record[i].desc, event_desc)) {
+			printf("\t%i", buffer->record[i].id);
+			printf("\t%s", buffer->record[i].name);
+			printf("\t%lu", convertLocal(buffer->record[i].start));
+			printf("\t%lu", convertLocal(buffer->record[i].end));
+			printf("\t%s", buffer->record[i].desc);
+		}
+	}
+	printf("--------------------------------------------------------------------------------\n");
+	
+	free(buffer->record);
+	free(buffer);
 }
-**/
