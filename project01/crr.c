@@ -4,8 +4,11 @@
 #include <time.h>
 #include "crr.h"
 
-/**FUNCTION DECLARATIONS**/
+/**GLOBAL VARIABLES**/
 struct reservation_array *db;
+int resCount;
+
+/**FUNCTION DECLARATIONS**/
 
 // COMPLETED (IN ORDER OF COMPLETION)
 void print_mainMenu();
@@ -21,15 +24,20 @@ void insert_reservation(struct reservation record);
 void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]);
 void view_reservations(FILE *out);
 void search_desc(FILE *out);
+void search_reseverationsOneRoom(FILE * out);
 
 // IN PROGRESS
-void search_reseverationsOneRoom(FILE * out);
+void search_reservationsDate(FILE *out);
+void edit_reservation(FILE *out);
+void delete_reservation(FILE *out);
 
 /**MAIN PROGRAM**/
 
 int main(int argc, char* argv[]) {
 	// First error check for the correct number of arguments
 	// Must have at least : $ ./executable rooms.dat schedule.dat
+
+	/****REQ 3a****/
 	if (argc < 3) {
 		fputs("Need to have: Executable rooms.dat 'name of output file'.\n", stderr);
 		return 1;
@@ -50,6 +58,13 @@ int main(int argc, char* argv[]) {
 	if ( ifp == NULL) {
 		fprintf(stderr, "Can't open input file: '%s'\n", argv[1]);
 		exit(1);
+	}
+
+	//Grab reservation count if output file exists, else resCount = 0
+	if (ofp == NULL) {
+		resCount = 0;
+	} else {
+
 	}
 
 	// Gathering room data
@@ -79,7 +94,7 @@ int main(int argc, char* argv[]) {
 				break;
 			case 3:
 	//	review the rooms available at a particular time, choose one, and establish a reservation (start and end time) for the room.
-	//	*		search_reservationsDate(ofp);
+	// *		search_reservationsDate(ofp);
 				break;
 			case 4:
 	//	review the schedule for one room over all days (future looking, not historical), allowing them to delete or change a pre-existing reservation
@@ -96,12 +111,12 @@ int main(int argc, char* argv[]) {
 	//	*		edit_reservation();
 				break;
 			case 8:
-	//	*		delete_reservation();
+				delete_reservation(ofp);
 				break;
 			default:
-				printf("------------------\n");
+				printf("------------------------------------\n");
 				printf("ERROR : Not a valid menu option. Try Again.\n");
-				printf("------------------\n");
+				printf("------------------------------------\n");
 	
 				break;
 		}
@@ -118,22 +133,26 @@ int main(int argc, char* argv[]) {
 }
 
 /**COMPLETED FUNCTIONS**/
+
+/*****REQ3b*****/
 void print_mainMenu() {
 	printf("Main Menu:\n");
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	printf("\t1. View Available Rooms\n");
 	printf("\t2. View Schedule File\n");
 	printf("\t3. Search Reservations: Date\n");
-	printf("\t4. Search Reservations: Room\n");
-	printf("\t5. Search Reservations: Description\n");
+	printf("\t4. Search Reservations: Room Name\n");
+	printf("\t5. Search Reservations: Event Description\n");
 	printf("\t6. Save Changes to File\n");
+	printf("\t7. Edit Reservation\n");
+	printf("\t8. Delete Reservations\n");
 	printf("\t0. Quit (Changes are not saved!)\n");
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	printf("Option: ");
 }
 
 void print_confMenu() {
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	printf("CONFIRM:\t1. YES \t2. NO\n");
 	printf("Option: ");
 }
@@ -161,6 +180,7 @@ struct room *fill_struct(FILE *in, int num) {
 
 	// Now that we know how many rooms to get from the file
 	// Malloc the struct to adjust as necessary	
+	/**********REQ4**INE OF MANY EXAMPLES****/
 	record_room = malloc(num*sizeof(struct room));
 
 	// READ argv[1] text file (ex: rooms.dat)
@@ -181,7 +201,7 @@ struct room *fill_struct(FILE *in, int num) {
 
 void print_roomStruct(struct room *record, int num) {
 	printf("\tROOM NUMBER\tROOM NAME\n");
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	for (int j = 0; j < num; j++) {
 		printf("\t%i\t\t%s\n", record[j].id, record[j].name);
 	}
@@ -190,7 +210,7 @@ void print_roomStruct(struct room *record, int num) {
 void view_rooms(struct room *record, int num) {
 	// Print Num Rooms
 	//printf("Num Rooms: %i\n",num);
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	printf("Available Rooms:\n");
 	print_roomStruct(record, num);
 
@@ -198,13 +218,13 @@ void view_rooms(struct room *record, int num) {
 	int roomChoice;
 	int confirm;
 
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	printf("Do you want to make a reservation?\n");
 	print_confMenu();
 	scanf("%i", &confirm);
 
 	if (confirm == 1) {
-		printf("------------------\n");
+		printf("------------------------------------\n");
 		printf("CHOOSE ROOM NUMBER: ");
 		scanf("%d", &roomChoice);
 		print_confMenu();
@@ -250,13 +270,7 @@ time_t convertLocal(time_t time) {
 
 void create_reservation(struct room* record, int roomChoice) {
 	struct reservation create_res;
-
-	// Grab the id
-	create_res.id = record[roomChoice].id;
-
-	// Grab the roomname
-	strncpy(create_res.name, record[roomChoice].name, ROOMNAME);
-
+	
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
 	char DATEBUF[] = "2014/01/01 00:00\n";
@@ -287,20 +301,28 @@ void create_reservation(struct room* record, int roomChoice) {
 
 	// Error checking dates and times
 	if (valid_date(start_t,end_t) == 0) {
-		puts("\nValid Date...\n");
+		puts("\nDATE VALID...\n");
 
+		// Grab the id
+		create_res.id = record[roomChoice].id;
+
+		// Grab the roomname
+		strncpy(create_res.name, record[roomChoice].name, ROOMNAME);
+
+			
 		// Store start and end date now that they have been validated
 		// Store them as localtime --> gmt
 		create_res.start = convertGMT(start_t);
 		create_res.end = convertGMT(end_t);
-	}
 
-	// Adding event description
-	char event_desc[ROOMDESC];
-	fputs("Event Description:\n", stdout);
-	fgets(event_desc, ROOMDESC, stdin);
-	fflush(stdout);
-	strncpy(create_res.desc, event_desc, ROOMDESC);
+		// Adding event description
+		char event_desc[ROOMDESC];
+		fputs("Event Description:\n", stdout);
+		fgets(event_desc, ROOMDESC, stdin);
+		fflush(stdout);
+		strncpy(create_res.desc, event_desc, ROOMDESC);
+
+	}
 
 	int confirm;
 	print_confMenu();
@@ -383,8 +405,8 @@ void view_reservations(FILE* out){
 	//Read file contents into buffer
 	fread(buffer->record, sizeof(struct reservation), count, out);
 	printf("\nCurrent Reservations:\n");
-	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
-	printf("------------------\n");
+	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		printf("\t%i", buffer->record[i].id);
 		printf("\t%s", buffer->record[i].name);
@@ -392,7 +414,7 @@ void view_reservations(FILE* out){
 		printf("\t%lu", convertLocal(buffer->record[i].end));
 		printf("\t%s", buffer->record[i].desc);
 	}
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	
 	free(buffer->record);
 	free(buffer);
@@ -434,11 +456,11 @@ void search_desc(FILE* out) {
 
 	// User search input
 	char event_desc[ROOMDESC];
-	printf("ENTER YOUR SEARCH:\n");
+	printf("SEARCH ALL DESCRIPTIONS:");
 	scanf("%s", event_desc);
 
-	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
-	printf("------------------\n");
+	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		if (strcasestr(buffer->record[i].desc, event_desc)) {
 			printf("\t%i", buffer->record[i].id);
@@ -448,13 +470,12 @@ void search_desc(FILE* out) {
 			printf("\t%s", buffer->record[i].desc);
 		}
 	}
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	
 	free(buffer->record);
 	free(buffer);
 }
 
-// IN PROGRESS
 void search_reseverationsOneRoom(FILE *out) {
 		// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
 	struct reservation_array *buffer;
@@ -491,11 +512,11 @@ void search_reseverationsOneRoom(FILE *out) {
 
 	// User search input
 	char name_search[ROOMDESC];
-	printf("ENTER YOUR SEARCH:\n");
+	printf("SEARCH ROOM:");
 	scanf("%s", name_search);
 
-	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
-	printf("------------------\n");
+	printf("\tROOM ID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("------------------------------------\n");
 	for (int i = 0; i < count; i++) {
 		if (strcasestr(buffer->record[i].name, name_search)) {
 			if ( (difftime(time(NULL), buffer->record[i].start)) > 0) {
@@ -508,8 +529,30 @@ void search_reseverationsOneRoom(FILE *out) {
 		}
 	}
 
-	printf("------------------\n");
+	printf("------------------------------------\n");
 	
 	free(buffer->record);
 	free(buffer);
+}
+
+
+// IN PROGRESS
+void delete_reservation(FILE *out) {
+	if (out == NULL) {
+		fprintf(stderr, "No schedule file to read from\n");
+		exit(1);
+	} else {
+		int confirm;
+		view_reservations(out);
+
+		printf("Are you sure you want to delete?\n");
+		print_confMenu();
+		scanf("%i", &confirm);
+
+		if (confirm == 1) {
+			printf("\n");
+		} else if (confirm == 2) {
+			exit(0);
+		}
+	}
 }
