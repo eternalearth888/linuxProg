@@ -6,7 +6,8 @@
 
 /**GLOBAL VARIABLES**/
 struct reservation_array *db;
-
+int resCount = 0;
+	
 /**FUNCTION DECLARATIONS**/
 
 // COMPLETED (IN ORDER OF COMPLETION)
@@ -262,7 +263,6 @@ time_t convertLocal(time_t time) {
 
 void create_reservation(struct room* record, int roomChoice, FILE *out) {
 	struct reservation create_res;
-	
 	// Adding start time
 	// Followed example for time from here: http://stackoverflow.com/questions/11428014/c-validation-in-strptime
 	char DATEBUF[] = "2014/01/01 00:00\n";
@@ -300,6 +300,7 @@ void create_reservation(struct room* record, int roomChoice, FILE *out) {
 		if (out == NULL) {
 			create_res.id = 0;
 		} else {
+			resCount++;
 			// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
 			struct reservation_array *buffer;
 			int count;
@@ -335,7 +336,7 @@ void create_reservation(struct room* record, int roomChoice, FILE *out) {
 
 			free(buffer->record);
 			free(buffer);
-			create_res.id = count++;
+			create_res.id = resCount;
 		}
 		// Grab the roomname
 		strncpy(create_res.name, record[roomChoice].name, ROOMNAME);
@@ -621,9 +622,19 @@ void delete_reservation(FILE *out) {
 
 			printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
 			printf("------------------------------------\n");
+
 			for (int i = 0; i < count; i++) {
 				if (buffer->record[i].id == id_choice) {
+					// Start from beginning of file
+					fseek(out, 0, SEEK_SET);
 					
+					fread(buffer->record, sizeof(struct reservation), count, out);
+					
+					// Delete choice by id
+					// Shift all elements in the array after the removal
+					printf("%s\n", "Deletion complete" );
+				} else {
+					printf("ID:%i has not been found. No deletions.",id_choice);
 				}
 			}
 
