@@ -7,26 +7,29 @@
 /**FUNCTION DECLARATIONS**/
 struct reservation_array *db;
 
-// Completed functions in order of completion
+// COMPLETED (IN ORDER OF COMPLETION)
 void print_mainMenu();
 void print_confMenu();
 int countRoom(FILE *in);
 struct room *fill_struct(FILE *in, int num);
-void view_available(struct room *record, int num);
+void view_rooms(struct room *record, int num);
 int valid_date(time_t start_t, time_t end_t);
 time_t convertGMT(time_t time);
 time_t convertLocal(time_t time);
-
-// Incompleted
 void create_reservation(struct room *record, int roomChoice);
 void insert_reservation(struct reservation record);
+
+// IN PROGRESS
+void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]);
+void view_reservations(FILE *out);
+//void search_event(struct reservation_array *record);
 
 /**MAIN PROGRAM**/
 
 int main(int argc, char* argv[]) {
 	// First error check for the correct number of arguments
 	// Must have at least : $ ./executable rooms.dat schedule.dat
-	if (argc < 2) {
+	if (argc < 3) {
 		fputs("Not enough ARGS.\n", stderr);
 		return 1;
 	}
@@ -64,23 +67,34 @@ int main(int argc, char* argv[]) {
 	while(choice != 0){	
 
 		switch (choice) {
+	//	review what rooms are available but not their schedule
+	//		able to create a reservation however
 			case 1:
-				view_available(create_room, numRoom);
+				view_rooms(create_room, numRoom);
 				break;
 			case 2:
-	//			view_specificDate(ifp, create_room);
+	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
+	//			view_reservationsDate();
 				break;
 			case 3:
-	//			view_specifcRoom();
+	//	review the schedule for one room over all days (future looking, not historical), allowing them to delete or change a pre-existing reservation
+	//			view_reseverationsOneRoom();
 				break;
 			case 4:
-	//			search_event();
+	//	search for a particular event based on a one-word (or subword) case-insensitive search of reservation descriptions, the interface should present all matching reservations in a menu so that one can be selected and deleted or changed
+	//			search_event(db);
 				break;
 			case 5:
-	//			save_changes();
+	// review all current reservations
+				view_reservations(ofp);
+				break;
+			case 6:
+				save_changes(ofp, db, argc, argv);
 				break;
 			default:
-				printf("Not a valid menu option. Try Again.\n");
+				printf("---------------------------------------------\n");
+				printf("ERROR : Not a valid menu option. Try Again.\n");
+				printf("---------------------------------------------\n");
 				break;
 		}
 		print_mainMenu();
@@ -103,8 +117,9 @@ void print_mainMenu() {
 	printf("\t2. View Reservations On Specific Date\n");
 	printf("\t3. View Specific Room\n");
 	printf("\t4. Search Event\n");
-	printf("\t5. Save Changes to File\n");
-	printf("\t0. To Quit\n");
+	printf("\t5. View All Current Reservations\n");
+	printf("\t6. Save Changes to File\n");
+	printf("\t0. Quit (Changes are not saved!)\n");
 	printf("---------------------------------------------\n");
 	printf("Option: ");
 }
@@ -163,7 +178,7 @@ void print_roomStruct(struct room *record, int num) {
 	}
 }
 
-void view_available(struct room *record, int num) {
+void view_rooms(struct room *record, int num) {
 	// Print Num Rooms
 	//printf("Num Rooms: %i\n",num);
 
@@ -194,7 +209,7 @@ int valid_date(time_t start_t, time_t end_t) {
 	return 0;
 }
 
-//REQ11
+/***************REQ11***************/
 // Help from Krista Horn
 time_t convertGMT(time_t time) {
 	struct tm tm;
@@ -211,8 +226,7 @@ time_t convertLocal(time_t time) {
 
 	return time;
 }
-
-/**CURRENT FUNCTIONS**/
+/*************************************/
 
 void create_reservation(struct room* record, int roomChoice) {
 	struct reservation create_res;
@@ -300,3 +314,67 @@ void insert_reservation(struct reservation record) {
 		db->numElements++;
 	}
 }
+
+
+// Functions in progress
+//REQ 10
+void save_changes(FILE *out, struct reservation_array *record, int argc, char* argv[]) {
+	int confirm;
+	print_confMenu();
+	scanf("%i", &confirm);
+
+	if (confirm == 1) {
+		fwrite(record->record, sizeof(struct reservation), record->numElements, out);
+		fprintf(stdout, "\nCURRENT CHANGES SAVED : %s\n", argv[2]);
+	} else if (confirm == 2) {
+		exit(0);
+	}
+}
+
+void view_reservations(FILE* out){
+	// example from : http://www.linuxquestions.org/questions/programming-9/c-howto-read-binary-file-into-buffer-172985/
+	struct reservation_array *buffer;
+	int count;
+	unsigned long length_file;
+	// Get file length
+	fseek(out, 0, SEEK_END);
+	length_file=ftell(out);
+
+	if ( (length_file%sizeof(struct reservation)) == 0) {
+		count = length_file/sizeof(struct reservation);
+	}
+
+	fseek(out, 0, SEEK_SET);
+
+	// Allocate memory
+	buffer = (struct reservation_array*)malloc(length_file);
+	buffer->record = (struct reservation*)malloc(length_file);
+
+	if (!buffer) {
+		fprintf(stderr, "ERROR: Could not allocate memory to buffer");
+        fclose(out);
+		exit(1);
+	}
+
+	//Read file contents into buffer
+	fread(buffer->record, sizeof(struct reservation), count, out);
+	printf("\nCurrent Reservations:\n");
+	printf("\tID\tROOM NAME\tSTART TIME\tEND TIME\tDESCRIPTION\n");
+	printf("--------------------------------------------------\n");
+	for (int i = 0; i < count; i++) {
+		printf("\t%i", buffer->record[i].id);
+		printf("\t%s", buffer->record[i].name);
+		printf("\t%lu", convertLocal(buffer->record[i].start));
+		printf("\t%lu", convertLocal(buffer->record[i].end));
+		printf("\t%s", buffer->record[i].desc);
+	}
+	
+	fclose(out);
+//	free(buffer);
+}
+
+/**
+void search_event(struct reservation_array *record) {
+	qsort(record, record->numElements, sizeof(struct reserve), string_cmpdesc)
+}
+**/
